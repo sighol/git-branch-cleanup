@@ -1,9 +1,18 @@
 use git2::Repository;
-fn main() {
-    let repo = Repository::open(".").unwrap();
-    let branches = repo.branches(None).unwrap();
-    for b in branches {
-        let (branch, branch_type) = b.unwrap();
-        println!("{}", branch.name().unwrap().unwrap())
+use std::error::Error;
+fn main() -> Result<(), Box<dyn Error>> {
+    let repo = Repository::open(".")?;
+    let branches = repo.branches(None)?;
+    let index = repo.index()?;
+    match index.path() {
+        Some(path) => println!("path: {:?}", path),
+        _ => (),
     }
+    for b in branches {
+        let (branch, _) = b?;
+        let name = branch.name()?.unwrap();
+        println!("{} {}", name, if branch.is_head() { "HEAD " } else { "" });
+    }
+
+    Ok(())
 }
