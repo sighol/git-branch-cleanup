@@ -1,3 +1,4 @@
+use colored::*;
 use git2::BranchType;
 use git2::ErrorCode;
 use git2::Repository;
@@ -9,6 +10,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let repo = Repository::open(".")?;
     let branches = repo.branches(None)?;
     let mut branches_to_delete = Vec::new();
+    let mut has_warned = false;
 
     for branch in branches {
         let (branch, branch_type) = branch?;
@@ -23,13 +25,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
 
         if is_gone && branch.is_head() {
-            eprintln!("WARN: branch {name} is checked out and gone.");
+            eprintln!(
+                "{warn} {branch} {name} {end}",
+                warn = "WARN:".bold().yellow(),
+                branch = "branch".yellow(),
+                name = name.blue().bold().italic(),
+                end = "is gone from upstream, but is currently checked out.".yellow()
+            );
+            has_warned = true;
         } else if is_gone {
             branches_to_delete.push(branch);
         }
     }
     if branches_to_delete.len() > 0 {
-        println!("\nDo you want to delete the following branches?");
+        if has_warned {
+            println!();
+        }
+        println!("Do you want to delete the following branches?");
         for b in branches_to_delete.iter() {
             println!("  - {}", b.name()?.unwrap());
         }
