@@ -2,10 +2,12 @@ use colored::*;
 use git2::BranchType;
 use git2::ErrorCode;
 use git2::Repository;
+use std::env;
 use std::error::Error;
 use std::io;
 use std::io::Write;
 
+use std::path::PathBuf;
 use std::process::Command;
 
 struct LightweightBranch {
@@ -13,8 +15,26 @@ struct LightweightBranch {
     refname: String,
 }
 
+fn find_git_repository() -> Option<PathBuf> {
+    let mut path = env::current_dir().ok()?;
+    loop {
+        if path.join(".git").exists() {
+            return Some(path);
+        }
+        path = path.parent()?.to_owned();
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let repo = Repository::open(".")?;
+    let path = find_git_repository().unwrap_or_else(|| {
+        eprintln!(
+            "{warn} {end}",
+            warn = "WARN:".bold().yellow(),
+            end = "No git repository found.".yellow()
+        );
+        std::process::exit(1);
+    });
+    let repo = Repository::open(path)?;
     let branches = repo.branches(None)?;
     let mut branches_to_delete = Vec::new();
     let mut has_warned = false;
